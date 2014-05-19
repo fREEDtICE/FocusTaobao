@@ -1,5 +1,5 @@
 {
-    "name": "application-name",
+    "name": "taobaofocus",
     "version": "0.0.1",
     "private": true,
     "scripts": {
@@ -14,7 +14,7 @@
         "grunt-contrib-cssmin": "*"
     },
     "dependencies": {
-        "bloomxx": "*",
+        "winston": "*",
         "lodash": "*",
         "connect-redis": "*",
         "passport-local": "*",

@@ -3,11 +3,15 @@ var app_config = {
         uid: 502,
         gid: 20
     },
-    mongodb_config: {
-        uri: 'mongodb://localhost/focustaobao'
-    },
+    mongodb_uri: 'mongodb://localhost/focustaobao',
 
-    mongodb_login_info: {
+    mongodb_options: {
+        server: {
+            socketOptions: {
+                keepAlive: 1
+            },
+            poolSize: 20
+        },
         user: 'root',
         pwd: ''
     },

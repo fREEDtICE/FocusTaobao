@@ -24,7 +24,7 @@ module.exports = (function () {
             }
 
             if (!fn && typeof Array.prototype.indexOf === 'function') {
-                return array.indexOf(value) >= 0;
+                return ~array.indexOf(value);
             } else {
                 return arrayIndex(array, value, fn);
             }
