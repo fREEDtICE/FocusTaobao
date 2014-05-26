@@ -2,53 +2,53 @@
  * Module dependencies.
  */
 
-var cluster = require('cluster');
+//var cluster = require('cluster');
 
-if (cluster.isMaster) {
+//if (cluster.isMaster) {
 //    // Count the machine's CPUs
-    var cpuCount = require('os').cpus().length;
+//    var cpuCount = require('os').cpus().length;
 //
 //    // Create a worker for each CPU
-    for (var i = 0; i < cpuCount; i += 1) {
-        cluster.fork();
-    }
+//    for (var i = 0; i < cpuCount; i += 1) {
+//        cluster.fork();
+//    }
+////
+//    cluster.on('listening', function (worker) {
+//        console.log('Worker ' + worker.id + ' listening :)');
+//    });
+//    cluster.on('exit', function (worker) {
+//        // Replace the dead worker,
+//        // we're not sentimental
+//        console.log('Worker ' + worker.id + ' died :(');
+//        cluster.fork();
 //
-    cluster.on('listening', function (worker) {
-        console.log('Worker ' + worker.id + ' listening :)');
-    });
-    cluster.on('exit', function (worker) {
-        // Replace the dead worker,
-        // we're not sentimental
-        console.log('Worker ' + worker.id + ' died :(');
-        cluster.fork();
-
-    });
-} else if (cluster.isWorker) {
-    var fs = require('fs'),
-        express = require('express'),
-        mongoose = require('mongoose'),
-        http = require('http'),
-        passport = require('passport');
+//    });
+//} else if (cluster.isWorker) {
+var fs = require('fs'),
+    express = require('express'),
+    mongoose = require('mongoose'),
+    http = require('http'),
+    passport = require('passport');
 
 
-    var env = process.env.NODE_ENV || 'development',
-        config = require('./config/config')[env];
+var env = process.env.NODE_ENV || 'development',
+    config = require('./config/config')[env];
 
-    var models_path = __dirname + '/app/models';
-    fs.readdirSync(models_path).forEach(function (file) {
-        if (~file.indexOf('.js')) {
-            require(models_path + '/' + file);
-        }
-    });
+var models_path = __dirname + '/app/models';
+fs.readdirSync(models_path).forEach(function (file) {
+    if (~file.indexOf('.js')) {
+        require(models_path + '/' + file);
+    }
+});
 
 // bootstrap passport config
-    require('./config/passport')(passport, config);
-    var app = express();
-// express settings
-    require('./config/express')(app, config, passport);
-
+require('./config/passport')(passport, config);
+var app = express();
 // Bootstrap routes
-    require('./config/routes')(app, passport);
+//require('./config/routes')(app, passport);
+
+// express settings
+require('./config/express')(app, config, passport);
 
 
 //    var express = require('express'),
@@ -266,36 +266,36 @@ if (cluster.isMaster) {
 //    });
 
 // development only
-    if ('development' == app.get('env')) {
-        app.use(express.errorHandler());
+if ('development' == app.get('env')) {
+    app.use(express.errorHandler());
+}
+
+var server = http.createServer(app).listen(app.get('port'), function () {
+    // chan
+    if (process.getgid && process.setgid) {
+        console.log('Current gid: ' + process.getgid());
+        try {
+            process.setgid(config.security.runtime.gid);
+            console.log('New gid: ' + process.getgid());
+        }
+        catch (err) {
+            console.log('Failed to set gid: ' + err);
+        }
     }
 
-    var server = http.createServer(app).listen(app.get('port'), function () {
-        // chan
-        if (process.getgid && process.setgid) {
-            console.log('Current gid: ' + process.getgid());
-            try {
-                process.setgid(config.security.runtime.gid);
-                console.log('New gid: ' + process.getgid());
-            }
-            catch (err) {
-                console.log('Failed to set gid: ' + err);
-            }
+    if (process.getuid && process.setuid) {
+        console.log('Current gid: ' + process.getuid());
+        try {
+            process.setuid(config.security.runtime.uid);
+            console.log('New gid: ' + process.getuid());
         }
-
-        if (process.getuid && process.setuid) {
-            console.log('Current gid: ' + process.getuid());
-            try {
-                process.setuid(config.security.runtime.uid);
-                console.log('New gid: ' + process.getuid());
-            }
-            catch (err) {
-                console.log('Failed to set uid: ' + err);
-            }
+        catch (err) {
+            console.log('Failed to set uid: ' + err);
         }
+    }
 
 
-        console.log('Express server listening on port ' + app.get('port'));
-    });
+    console.log('Express server listening on port ' + app.get('port'));
+});
 //    console.log(app.routes);
-}
+//}

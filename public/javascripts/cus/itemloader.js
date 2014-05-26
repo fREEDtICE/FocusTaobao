@@ -17,7 +17,7 @@
 
         $lis.each(function () {
             var me = $(this);
-            me.click(function(){
+            me.click(function () {
                 $q.text(me.data("sku-quantity"));
                 $p.text(me.data("sku-price"));
                 var pro_url = me.find("img").attr("src");
@@ -64,25 +64,24 @@
 
         if (cookie_shopping) {
             $('div#shopping-summary').removeClass('hidden').addClass('show');
-//            try {
-            cookie_shopping = cookie_shopping.substring(cookie_shopping.indexOf('{'), cookie_shopping.lastIndexOf('}') + 1);
-            cookie_shopping.replace("'", "\"");
-            var cart = $.parseJSON(cookie_shopping);
-            var totalPrice = 0, totalQuantity = 0;
-            for (var key in cart) {
-                var p = cart[key];
-                totalQuantity = totalQuantity + parseInt(p.quantity);
-                totalPrice = totalPrice + (parseFloat(p.price) * parseInt(p.quantity));
-                var item = createCartItem(p);
-                if (item) {
-                    $list.append(item);
+            try {
+                cookie_shopping = cookie_shopping.substring(cookie_shopping.indexOf('{'), cookie_shopping.lastIndexOf('}') + 1);
+                cookie_shopping.replace("'", "\"");
+                var cart = $.parseJSON(cookie_shopping);
+                var totalPrice = 0, totalQuantity = 0;
+                for (var key in cart) {
+                    var p = cart[key];
+                    totalQuantity = totalQuantity + parseInt(p.quantity);
+                    totalPrice = totalPrice + (parseFloat(p.price) * parseInt(p.quantity));
+                    var item = createCartItem(p);
+                    if (item) {
+                        $list.append(item);
+                    }
                 }
-            }
 
-            updateTotalPriceAndQuantity(totalPrice, totalQuantity);
-//            } catch (ex) {
-//                console.log(ex);
-//            }
+                updateTotalPriceAndQuantity(totalPrice, totalQuantity);
+            } catch (ex) {
+            }
         } else {
             $('div#go-shopping').removeClass('hidden').addClass('show');
         }

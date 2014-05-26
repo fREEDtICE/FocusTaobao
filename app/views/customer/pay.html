@@ -1,0 +1,9 @@
+{% extends "customer_layout .html" %}
+<form role="form" action="/customer/pay" method="post">
+    <div class="form-group">
+        <label for="payment">Test pay money</label>
+        <input type="text" class="form-control" id="payment" placeholder="Money">
+        <p class="help-block">Test payment</p>
+    </div>
+    <button type="submit" class="btn btn-default">Submit</button>
+</form>

@@ -1,0 +1,61 @@
+{% extends "customer_layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="panel panel-info">
+        <div class="panel-heading">FocusTaobao</div>
+        <div class="table-responsive">
+            <table class="table tdmiddle">
+                {% for i in shoppingcart %}
+                <tr>
+                    <td>
+                        <input type="hidden" name="sku" value="{{JSON.stringify(i)}}">
+                        <input type="hidden" name="skuid" value="{{i.skuid}}">
+                    </td>
+                    <td style="width:150px">
+                        <a href="/items/d/{{i.numiid}}">
+                            <img src="{{i.img}}" class="thumbnail" style="width:150px; height: 150px"
+                                 alt="{{i.title}}"/>
+                        </a>
+                    </td>
+                    <td style="max-width: 300px;">
+                        <a href="/items/d/{{i.numiid}}">
+                            <h5>{{i.title}}</h5>
+                        </a>
+                    </td>
+                    <td>
+                        <strong><span class="price">{{i.price}}</span></strong>
+                    </td>
+                    <td>
+                        <div class="input-group" style="width: 100px;">
+                <span class="input-group-btn">
+                <button class="btn btn-default" data-tag="quantity-minus" type="button">-</button>
+                </span>
+                            <input type="text" data-tag="quantity" value="{{i.quantity}}" class="form-control">
+                <span class="input-group-btn">
+                <button class="btn btn-default" data-tag="quantity-plus" type="button">+</button>
+                </span>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm">
+                            delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    <div class="container text-right">
+        <span>total price:</span>
+
+        <h2 class="price-total"></h2>
+        <a href="/customer/checkout" class="btn btn-danger">Go Checkout</a>
+    </div>
+
+</div>
+{% endblock content %}
+
+{% block lazy_js %}
+{% parent %}, '/javascripts/cus/home/showcart.js'
+{% endblock %}

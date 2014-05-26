@@ -3,34 +3,93 @@ var mongoose = require('mongoose'),
     validator = require('validator'),
     ObjectId = Schema.ObjectId;
 
+var _ = require('lodash');
+
+var cutil = require("../../utils/CommonUtils");
+
+var BaseSchema = require("./BaseSchema");
+
 var CustomerSchema = new Schema({
-    firstName: {type: String},
-    lastName: {type: String},
+    nick: String,
     email: {type: String, required: true, unique: true},
     gender: {type: Number, default: -1},
     phone: {type: String, unique: true},
-    salt: Buffer,
+    salt: {type: String, required: true},
     hpwd: {type: String, required: true},
+    status: {type: Number, default: 0},
+    score: Number,
+    points: Number,
     lastLogin: {type: Number, default: Date.now()},
+    registerInfo: {
+        confirmUrl: String,
+        time: {type: Number, default: Date.now()}
+    },
     moneyAccount: {
         paypal: {type: Number, dedault: 0},
         money: {type: Number, dedault: 0}
     },
     shippingAddress: [
         {
-            zipCode: Number,
+            zipCode: String,
             addressee: {type: String, required: true},
             addresseeContact: {type: String, required: true},
             address: {type: String, required: true},
             tag: String
         }
+    ],
+    shoppingcart: [
+        {
+            ask_price: Number,
+            skuid: Number,
+            detail_url: String,
+            title: String,
+            numiid: Number,
+            img: String,
+            sku_price: Number,
+            prom_price: Number,
+            price: Number,
+            props: String,
+            sel_prop: [
+                {
+                    id: String,
+                    name: String,
+                    alias: String
+                }
+            ],
+            quantity: Number
+        }
+    ],
+    favorites: [
+        {
+            tag: {type: String, default: "default"},
+            items: [
+                {
+                    skuid: Number,
+                    detail_url: String,
+                    title: String,
+                    numiid: Number,
+                    img: String,
+                    sku_price: Number,
+                    prom_price: Number,
+                    price: Number,
+                    props: String,
+                    sel_prop: [
+                        {
+                            id: String,
+                            name: String,
+                            alias: String
+                        }
+                    ]
+                }
+            ]
+        }
     ]
 });
 
-CustomerSchema.virtual("pwd").set(function (pwd) {
+CustomerSchema.virtual("password").set(function (pwd) {
     this.salt = this.makeSalt();
-    this.hpwd = this.encryptPassword(pwd, salt);
-    this.pwd = this.pwd;
+    this.hpwd = this.encryptPassword(pwd, this.salt);
+    this.pwd = pwd;
 }).get(function () {
     return this.pwd;
 });
@@ -47,8 +106,42 @@ CustomerSchema.path("phone").validate(function (v) {
     return  /^\d{6,15}$/.test(v);
 }, "invalid phone");
 
+
+CustomerSchema.path("gender").set(function (v) {
+    if (typeof v !== 'number') {
+        v = parseInt(v) || -1;
+    }
+    this.gender = v;
+});
+
+CustomerSchema.static("checkNumFields", function (item, props) {
+    var converter = function (v, t) {
+        console.log("convert v = %s, t = %s", v, t);
+        if (t === 'float') {
+            return parseFloat(v) || v;
+        } else if (t === 'int') {
+            return parseInt(v) || v;
+        }
+    };
+    _.forIn(props, function (props, type) {
+        _.forEach(props, function (p) {
+            console.log("item[p] %s , %s", p, item[p]);
+            if (p in item && typeof item[p] !== "number") {
+                item[p] = converter(item[p], type);
+            }
+        });
+    });
+});
+
+
 CustomerSchema.methods.makeSalt = function () {
-    return require("crypto").randomBytes(32).toString('hex');
+    try {
+        var buf = require("crypto").randomBytes(32);
+        return buf.toString("base64");
+    } catch (ex) {
+        console.log(ex);
+        return cutil.echoStr(32);
+    }
 };
 
 CustomerSchema.methods.authenticate = function (pwd) {
@@ -63,6 +156,86 @@ CustomerSchema.methods.encryptPassword = function (pwd) {
         return require("crypto").createHmac('sha1', this.salt).update(pwd).digest('hex');
     } catch (err) {
         return ''
+    }
+};
+
+CustomerSchema.methods.cookieToCart = function (items) {
+    if (!this.shoppingcart) {
+        console.log("shoppingcart not exists");
+        this.shoppingcart = [];
+    }
+    var self = this;
+    _.forIn(items, function (v, k) {
+        self.addItemToShoppingCart(v, false);
+    });
+
+    self.save(function (err) {
+        console.log(err);
+    });
+};
+
+CustomerSchema.methods.adjustCartItemQuantity = function (skuid, quantity) {
+    var self = this;
+    if (!self.shoppingcart) {
+        console.log("shopping cart not init");
+        return;
+    }
+
+    var index = _.findIndex(self.shoppingcart, {skuid: skuid});
+    if (~index) {
+        self.shoppingcart[index].quantity = quantity;
+    }
+
+    self.save(function (err) {
+        console.log(err);
+    });
+};
+
+CustomerSchema.methods.removeCartItem = function (skuid) {
+    var self = this;
+    if (!self.shoppingcart) {
+        console.log("shopping cart not init");
+        return;
+    }
+
+    var index = _.findIndex(self.shoppingcart, {skuid: item.skuid});
+    if (~index) {
+        self.shoppingcart.splice(index, 1);
+    }
+
+    self.save(function (err) {
+        console.log(err);
+    });
+};
+
+CustomerSchema.methods.addItemToShoppingCart = function (item, save) {
+    item = typeof item === "object" ? item : JSON.parse(item);
+
+    save = save || true;
+
+    Customer.checkNumFields(item, {
+        "float": ["sku_price", "price", "prom_price", "ask_price"],
+        "int": ["skuid", "numiid", "quantity"]
+    });
+
+    var self = this;
+
+    if (!self.shoppingcart) {
+        self.shoppingcart = [];
+    }
+
+    var index = _.findIndex(self.shoppingcart, {skuid: item.skuid});
+    console.log(item.skuid + " index is " + index);
+    if (~index) {
+        self.shoppingcart[index].quantity += item.quantity;
+    } else {
+        self.shoppingcart.push(item);
+    }
+
+    if (save) {
+        self.save(function (err) {
+            console.log(err);
+        });
     }
 };
 

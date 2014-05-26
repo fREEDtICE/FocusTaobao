@@ -14,52 +14,46 @@ var express = require('express'),
 var mongoose = require('mongoose'),
 //        sesion_mongo = require('connect-mongo')(express);
     RedisStore = require('connect-redis')(session);
-
 var swig = require('swig');
-
 var pkg = require('../package.json');
-
-var langMng = require("../app/models/LangDictManager"),
-    MemMng = require("../app/datas/MemManager");
-
+var langMng = require("../app/models/LangDictManager");
 var env = process.env.NODE_ENV || 'development';
 
 module.exports = function (app, config, passport) {
 
+    require("../app/datas/MemManager").init(config.memcached.server, config.memcached.config);
+
     app.set('showStackError', true)
 
 
-    // Logging
+    // 配置日志
     // Use winston on production
-    var log
+    var log;
     if (env !== 'development') {
         log = {
             stream: {
                 write: function (message, encoding) {
-                    winston.info(message)
+                    winston.info(message);
                 }
             }
         }
     } else {
-        log = 'dev'
+        log = 'dev';
     }
     // Don't log during tests
     if (env !== 'test') app.use(express.logger(log))
 
-    // all environments
+    // 设定端口
     app.set('port', process.env.PORT || 8000);
+
+    // 设置视图模板, 使用swig
     app.engine('html', swig.renderFile);
     app.set('view engine', 'html');
     app.set('views', config.root + "/app/views");
-//app.set('view engine', 'jade');
 
-    require("./template")(swig);
-
-    app.set('view cache', false);
-// To disable Swig's cache, do the following:
-    swig.setDefaults({ cache: false });
-
-    // should be placed before express.static
+    // 配置swig
+    require("./template")(app, swig);
+    // 开启压缩
     app.use(express.compress({
         filter: function (req, res) {
             return /json|text|javascript|css/.test(res.getHeader('Content-Type'))
@@ -69,26 +63,31 @@ module.exports = function (app, config, passport) {
 
     app.use(express.favicon());
 //    app.use(express.logger('dev'));
-    app.use(express.json());
     app.use(express.urlencoded());
+    app.use(express.json());
 
+    // Helmet安全加固
     app.use(helmet.xframe());
     app.use(helmet.iexss());
     app.use(helmet.contentTypeOptions());
     app.use(helmet.cacheControl());
+
     app.use(express.methodOverride());
+
+    // cookie和session
     app.use(express.cookieParser(config.session.secret));
     app.use(express.session({
         secret: config.session.secret,
         store: new RedisStore({
-            db: 'focustaobao',
+            db: 'sessions',
             host: "localhost",
             port: 6379,
-            ttl: 60 * 10
+            ttl: 60 * 10 * 30
         }),
         cookie: { maxAge: 60 * 1000 * 30, expires: new Date(Date.now() + 60 * 1000 * 30), httpOnly: true }
     }));
 
+    // mongoose连接
     var connect = function () {
         mongoose.connect(config.db, config.mongoose.options);
     }
@@ -97,31 +96,32 @@ module.exports = function (app, config, passport) {
 // Error handler
     mongoose.connection.on('error', function (err) {
         console.log(err);
-    })
+    });
 
-// Reconnect when closed
+    // 断连时自动重连
     mongoose.connection.on('disconnected', function () {
         connect();
-    })
+    });
+
+
+    // 配置淘宝API
     taobao.config({
         app_key: config.taobao.app_key,
         app_secret: config.taobao.app_secret
     });
 
-    app.use(express.static(config.root + '/public'));
-
-    app.use(express.csrf({
-        value: function (req) {
-            return req.session.__csrf;
-        }
-    }));
+    // 启用CSRF插件, 防止CSRF攻击
+    app.use(express.csrf());
     app.use(function (req, res, next) {
-        var token = req.csrfToken();
-        res.locals.csrftoken = token;
-        req.session.__csrf = token;
+        res.locals.csrftoken = req.csrfToken();
         next();
     });
 
+    // 初始化passport
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // Param验证中间件
     app.param(function (name, fn) {
         if (fn instanceof RegExp) {
             return function (req, res, next, val) {
@@ -138,17 +138,17 @@ module.exports = function (app, config, passport) {
 
 //app.set('socket.io', io.listen(8100));
 
-    MemMng.init(config.memcached.server, config.memcached.config);
-
-//app.set('lang_mng', langMng);
-
-    app.use(app.router);
-
+    // 配置多语言管理
     app.use(function (req, res, next) {
+        // 只有Get方法需要多语言支持
         if (req.method !== "GET") {
             return next();
         }
 
+        // 获取当前语言设置, 按以下优先顺序返回:
+        // 1.用户设置的偏好语言
+        // 2.用户浏览器的首选语言
+        // 3.默认: 英语
         function getLang(req) {
             return (req.cookies.fav_lang) || (req.acceptedLanguages && req.acceptedLanguages.length > 0 ?
                 req.acceptedLanguages[0] : "en");
@@ -156,19 +156,45 @@ module.exports = function (app, config, passport) {
 
         res.locals.langs = (function () {
             var lang = getLang(req);
-//        var langDict = langMng.getDict(lang) || langMng.getDict("en");
             return langMng.getDict(lang) || langMng.getDict("en");
         })(req);
         next();
     });
 
+    // 如果用户已经鉴权成功, 把用户信息放置到res本地缓存中
+    app.use(function (req, res, next) {
+        if (req.isAuthenticated() && req.user) {
+            res.locals.user = req.user;
+        }
+        next();
+    });
+
+
+    // 路由配置
+    require('./routes')(app, passport);
+
+    // 静态文件配置
+    app.use(express.static(config.root + '/public'));
+
+    // 出错时的500配置
     app.use(function (err, req, res, next) {
-        if (err) {
-            console.log(err);
-            console.log(err.stack);
-            return res.send(500);
+        // treat as 404
+        if (err.message
+            && (~err.message.indexOf('not found')
+                || (~err.message.indexOf('Cast to ObjectId failed')))) {
+            return next();
         }
 
+        // log it
+        // send emails if you want
+        console.error(err.stack)
+
+        // error page
+        res.status(500).render('500', { error: err.stack })
+    });
+
+    // 找不到网页的404配置
+    app.use(function (req, res, next) {
         res.status(404);
 
         // respond with html page
@@ -187,93 +213,9 @@ module.exports = function (app, config, passport) {
         res.type('txt').send('Not found');
     });
 
+
 // development only
     if ('development' == app.get('env')) {
         app.use(express.errorHandler());
     }
-
-
-    // set views path, template engine and default layout
-//    app.set('views', config.root + '/app/views')
-//    app.set('view engine', 'jade')
-//
-//    app.configure(function () {
-//        // expose package.json to views
-//        app.use(function (req, res, next) {
-//            res.locals.pkg = pkg
-//            next()
-//        })
-//
-//        // cookieParser should be above session
-//        app.use(express.cookieParser())
-//
-//        // bodyParser should be above methodOverride
-//        app.use(express.bodyParser())
-//        app.use(express.methodOverride())
-//
-//        // express/mongo session storage
-//        app.use(express.session({
-//            secret: pkg.name,
-//            store: new mongoStore({
-//                url: config.db,
-//                collection: 'sessions'
-//            })
-//        }))
-//
-//        // use passport session
-//        app.use(passport.initialize())
-//        app.use(passport.session())
-//
-//        // connect flash for flash messages - should be declared after sessions
-//        app.use(flash())
-//
-//        // should be declared after session and flash
-//        app.use(helpers(pkg.name))
-//
-//        // adds CSRF support
-//        if (process.env.NODE_ENV !== 'test') {
-//            app.use(express.csrf())
-//
-//            // This could be moved to view-helpers :-)
-//            app.use(function (req, res, next) {
-//                res.locals.csrf_token = req.csrfToken()
-//                next()
-//            })
-//        }
-//
-//        // routes should be at the last
-//
-//        // assume "not found" in the error msgs
-//        // is a 404. this is somewhat silly, but
-//        // valid, you can do whatever you like, set
-//        // properties, use instanceof etc.
-//        app.use(function (err, req, res, next) {
-//            // treat as 404
-//            if (err.message
-//                && (~err.message.indexOf('not found')
-//                    || (~err.message.indexOf('Cast to ObjectId failed')))) {
-//                return next()
-//            }
-//
-//            // log it
-//            // send emails if you want
-//            console.error(err.stack)
-//
-//            // error page
-//            res.status(500).render('500', { error: err.stack })
-//        })
-//
-//        // assume 404 since no middleware responded
-//        app.use(function (req, res, next) {
-//            res.status(404).render('404', {
-//                url: req.originalUrl,
-//                error: 'Not found'
-//            })
-//        })
-//    })
-//
-//    // development env config
-//    app.configure('development', function () {
-//        app.locals.pretty = true
-//    })
 }

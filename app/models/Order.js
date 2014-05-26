@@ -16,28 +16,31 @@ var mongoose = require('mongoose'),
     ObjectId = Schema.Types.ObjectId,
     Mixed = Schema.Types.Mixed;
 
-var OrderItemSchema = new Schema({
-    itemId: {type: Number, required: true},
-    price: {type: Number, required: true},
-    quantity: {type: Number, required: true, default: 1},
-    taobaoInfo: Mixed
-});
-
 var OrderSchema = new Schema({
     cusId: {type: ObjectId, ref: Customer.schema, required: true},
     items: [
-        {type: ObjectId, ref: OrderItemSchema}
-//        {
-//            productId: {type: Number, required: true},
-//            price: {type: Number, required: true},
-//            quantity: {type: Number, required: true, default: 1},
-//            taobaoInfo: Mixed
-//        }
+        {
+            skuid: Number,
+            detail_url: String,
+            title: String,
+            numiid: Number,
+            img: String,
+            sku_price: Number,
+            prom_price: Number,
+            price: Number,
+            props: String,
+            sel_prop: [
+                {
+                    id: String,
+                    name: String,
+                    alias: String
+                }
+            ],
+            quantity: Number
+        }
     ],
-    money: {
-        paid: {type: Number, default: 0},
-        cost: {type: Number, default: 0}
-    },
+    paid: {type: Number, default: 0},
+    commission: {type: Number},
     status: {type: Number, required: true, default: 0},
     shipment: {type: ObjectId, ref: Shipment.schema},
     handler: {type: ObjectId, ref: Admin.schema}
@@ -84,14 +87,14 @@ OrderSchema.methods.getTotalPrice = function () {
 
 var Order = mongoose.model("Order", OrderSchema);
 
-var OrderItem = mongoose.model("OrderItem", OrderItemSchema);
+//var OrderItem = mongoose.model("OrderItem", OrderItemSchema);
 
 module.exports.schema = exports.schema = OrderSchema;
 
 module.exports.model = exports.model = Order;
 
-module.exports.itemSchema = exports.itemSchema = OrderItemSchema;
+//module.exports.itemSchema = exports.itemSchema = OrderItemSchema;
 
-module.exports.itemModel = exports.itemModel = OrderItem;
+//module.exports.itemModel = exports.itemModel = OrderItem;
 
 

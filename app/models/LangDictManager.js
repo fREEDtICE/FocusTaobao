@@ -162,7 +162,6 @@ module.exports = exports = (function () {
 
     return {
         getDict: function (lang) {
-            console.log("get Dict: %s, r: %s", lang, me.redisCache.langs[lang]);
             return me.redisCache.langs[lang];
         },
 

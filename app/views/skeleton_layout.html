@@ -14,17 +14,24 @@
     <![endif]-->
 </head>
 <body>
-{% block body %}{% endblock %}<script ype="text/javascript" src="/javascripts/lazyload.min.js"></script>
+{% block body %}{% endblock %}
+<script ype="text/javascript" src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<!--'http://cdn.bootcss.com/bootstrap/3.1.1/css/bootstrap.min.css'-->
+<!--<script ype="text/javascript" src="http://cdn.bootcss.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>-->
+<script src="http://libs.baidu.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+<script ype="text/javascript" src="/javascripts/lazyload.min.js"></script>
+
 <script type="text/javascript">
-    LazyLoad.css([{%block lazy_css%}'http://cdn.bootcss.com/bootstrap/3.1.1/css/bootstrap.min.css'{%endblock%}], function(){
+    LazyLoad.css([{%block lazy_css%}'http://libs.baidu.com/bootstrap/3.0.3/css/bootstrap.css'{%endblock%}], function(){
     });
 
-    LazyLoad.js([{% block lazy_js %}"http://code.jquery.com/jquery-1.11.0.min.js", "http://cdn.bootcss.com/bootstrap/3.1.1/js/bootstrap.min.js"{% endblock %}], function(){
+    LazyLoad.js([{% block lazy_js %}{% endblock %}], function(){
         $(document).ready(function(){
             {% block lazy_js_fin_func %}{%endblock%}
         });
     });
 </script>
+
 
 </body>
 </html>

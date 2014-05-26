@@ -16,7 +16,7 @@ var AdminSchema = new Schema({
     status: Number
 });
 
-AdminSchema.virtual("pwd").set(function (pwd) {
+AdminSchema.virtual("password").set(function (pwd) {
     this.salt = this.makeSalt();
     this.hpwd = this.encryptPassword(pwd, salt);
     this.pwd = this.pwd;

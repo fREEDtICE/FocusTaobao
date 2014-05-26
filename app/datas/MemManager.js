@@ -34,9 +34,15 @@ module.exports = exports = (function (config) {
         this.lifetime = 60 * 60 * 24;
     };
 
-    BloomMem.prototype.touch = function (key, cb) {
-        var me = this;
-        me.mem.touch(key, me.lifetime, cb);
+    BloomMem.prototype.touch = function (key, time, cb) {
+        var me = this,
+            t = me.lifetime;
+        if (typeof time === 'number') {
+            t = time;
+        } else if (typeof time === 'function') {
+            cb = time;
+        }
+        me.mem.touch(key, t, cb);
     };
 
     BloomMem.prototype.has = function (key, cb) {
@@ -68,17 +74,16 @@ module.exports = exports = (function (config) {
     };
 
     BloomMem.prototype.get = function (key, touch, cb) {
-        var me = this;
+        var me = this,
+            t = false;
+        if (typeof touch === "function") {
+            cb = touch;
+        } else if (typeof touch === 'boolean') {
+            t = touch;
+        }
         me.bloom.has(key, function (err, has) {
             console.log("bloom test key %s ==> %s", key, has);
             if (has) {
-                var t;
-                if (typeof touch !== "boolean") {
-                    cb = touch;
-                    t = false;
-                } else {
-                    t = touch;
-                }
                 if (t) {
                     me.mem.touch(key, me.lifetime);
                 }
@@ -164,4 +169,5 @@ module.exports = exports = (function (config) {
             return mem;
         }
     };
-})(config[env]);
+})
+(config[env]);

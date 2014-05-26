@@ -1,6 +1,6 @@
 var util = require("../utils/CommonUtils");
 
-module.exports = function (swig) {
+module.exports = function (app, swig) {
     swig.setFilter('basicmath', function (a, b, opt) {
         if (arguments.length < 3) {
             return a;
@@ -32,4 +32,9 @@ module.exports = function (swig) {
 
         return input;
     });
+
+    var isDev = 'development' === process.env.NODE_ENV;
+    // 设置swig缓存,开发模式下关闭
+    app.set('view cache', isDev);
+    swig.setDefaults({ cache: isDev });
 };
