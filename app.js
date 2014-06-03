@@ -26,13 +26,15 @@
 //} else if (cluster.isWorker) {
 var fs = require('fs'),
     express = require('express'),
-    mongoose = require('mongoose'),
     http = require('http'),
     passport = require('passport');
 
 
 var env = process.env.NODE_ENV || 'development',
     config = require('./config/config')[env];
+
+
+require('./config/database')(config);
 
 var models_path = __dirname + '/app/models';
 fs.readdirSync(models_path).forEach(function (file) {
@@ -44,6 +46,9 @@ fs.readdirSync(models_path).forEach(function (file) {
 // bootstrap passport config
 require('./config/passport')(passport, config);
 var app = express();
+
+exports.expressApp = app;
+
 // Bootstrap routes
 //require('./config/routes')(app, passport);
 

@@ -85,7 +85,7 @@
                                 <span class="span-prop" data-cname="{{pobj.cname}}" data-cid="{{pobj.cid}}">{{pobj.cname}}</span>
                             </td>
                             <td>
-                                <ul class="pagination pagination-lg prop-list" data-cid="{{pobj.cid}}">
+                                <ul class="pagination pagination-lg prop-list" data-cid="{{pobj.cid}}" data-cname="{{pobj.cname}}">
                                     {% for p in pobj.props %}
                                     <li data-pid="{{p.pid}}" data-pname="{{p.pname}}" data-alias="{{p.alias}}">
                                         <a href="javascript:void(0);" class="thumbnail">

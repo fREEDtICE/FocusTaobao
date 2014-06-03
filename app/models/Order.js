@@ -5,11 +5,36 @@
  * Time: 下午8:35
  * To change this template use File | Settings | File Templates.
  */
-var Shipment = require("./Shipment"),
-    Customer = require("./Customer"),
+var Customer = require("./Customer"),
     Admin = require("./Admin");
 
-var cutil = require("../../utils/CommonUtils");
+var _ = require("lodash"),
+    autoIncrement = require('mongoose-auto-increment');
+
+var ItemStatus = {
+    "initialized": 0,
+    "customerRelay": 1,
+    "ordered": 2,
+    "shipped": 3,
+    "arrived": 4,
+    "internationalShip": 5,
+    "inQuestion": 6,
+    "cancel": 7,
+    "refund": 8,
+    "new": 12
+};
+
+var OrderStauts = {
+    "Confirmed": 0,
+    "ItemPaid": 1,
+    "Processing": 2,
+    "Ordered": 3,
+    "ShippmentPaid": 4,
+    "Shipped": 5,
+    "Complete": 6,
+    "Attention": 11,
+    "Question": 12
+};
 
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema,
@@ -17,7 +42,8 @@ var mongoose = require('mongoose'),
     Mixed = Schema.Types.Mixed;
 
 var OrderSchema = new Schema({
-    cusId: {type: ObjectId, ref: Customer.schema, required: true},
+    owner: {type: ObjectId, ref: Customer.schema, required: true},
+    createDate: {type: Number, default: Date.now()},
     items: [
         {
             skuid: Number,
@@ -31,32 +57,69 @@ var OrderSchema = new Schema({
             props: String,
             sel_prop: [
                 {
+                    cid: String,
+                    cname: String,
                     id: String,
                     name: String,
                     alias: String
                 }
             ],
+            status: {type: Number, required: true, default: ItemStatus.initialized},
             quantity: Number
         }
     ],
-    paid: {type: Number, default: 0},
-    commission: {type: Number},
-    status: {type: Number, required: true, default: 0},
-    shipment: {type: ObjectId, ref: Shipment.schema},
-    handler: {type: ObjectId, ref: Admin.schema}
+    commissionRate: {type: Number, default: 0.1},
+    money: {
+        paid: {type: Number, default: 0},
+        remain: {type: Number, default: 0}
+    },
+    status: {type: Number, required: true, default: OrderStauts.Confirmed},
+    shipAddress: {
+        zipCode: String,
+        addressee: {type: String, required: true},
+        addresseeContact: {type: String, required: true},
+        address: {type: String, required: true},
+        tag: String
+    }
+});
+
+OrderSchema.virtual('balance').get(function () {
+    return this.money.remain + this.money.paid - this.totalPrice;
+});
+
+OrderSchema.virtual('totalPrice').get(function () {
+    return this.commission + this.itemTotal;
+});
+
+OrderSchema.virtual("commission").get(function () {
+    return ((this.itemTotal * 100) * this.commissionRate) / 100;
+});
+
+OrderSchema.virtual('itemTotal').get(function () {
+    var me = this;
+    if (!me.items || !me.items.length) {
+        return 0;
+    }
+
+    var itemTotal = 0.0;
+    var items = _.filter(me.items, function (item) {
+        return item.status !== ItemStatus.cancel && item.status !== ItemStatus.refund;
+    });
+
+    if (items.length) {
+        _.forEach(items, function (item) {
+            itemTotal += (item.price * 100) * item.quantity;
+        });
+        itemTotal = itemTotal / 100;
+    }
+    return itemTotal;
 });
 
 
 OrderSchema.methods.addOrderItem = function (item) {
-    console.log(item);
-    console.log(item instanceof OrderItem);
-    if (!item || !item instanceof OrderItem) {
-        return new Error("invalid order item");
-    }
-    var me = this, item = cutil.searchArray(me.items, function (v) {
-        return v.productId === item.productId;
+    var me = this, item = _.find(me.items, function (v) {
+        return v.skuid === item.skuid;
     });
-
 
     if (item) {
         item.quantity = item.quantity + 1;
@@ -69,32 +132,14 @@ OrderSchema.methods.addOrderItem = function (item) {
     });
 };
 
-
-OrderSchema.methods.getTotalPrice = function () {
-    var me = this;
-    if (!me.items || !me.items.length) {
-        return 0;
-    }
-
-    var i = me.items.length, price = 0, item;
-    while (i--) {
-        item = me.items[i];
-        price = price + item.quantity * item.price;
-    }
-
-    return price;
-}
+OrderSchema.plugin(autoIncrement.plugin, {model: 'Order', startAt: 60000});
 
 var Order = mongoose.model("Order", OrderSchema);
-
-//var OrderItem = mongoose.model("OrderItem", OrderItemSchema);
 
 module.exports.schema = exports.schema = OrderSchema;
 
 module.exports.model = exports.model = Order;
 
-//module.exports.itemSchema = exports.itemSchema = OrderItemSchema;
+module.exports.ItemStatus = exports.ItemStatus = ItemStatus;
 
-//module.exports.itemModel = exports.itemModel = OrderItem;
-
-
+module.exports.OrderStatus = exports.OrderStatus = OrderStauts;

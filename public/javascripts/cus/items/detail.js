@@ -30,12 +30,6 @@
         var numiid = $shopbtn.data("num_iid"),
             price = $shopbtn.data("price");
 
-        $shopbtn.popover({
-            html: true,
-            placement: 'top',
-            trigger: 'manual'
-        });
-
         $shopbtn.on('shown.bs.popover', function () {
             $('#close-add-result').click(function (e) {
                 $shopbtn.popover('hide');
@@ -46,12 +40,6 @@
             html: true,
             placement: 'top',
             trigger: 'manual'
-        });
-
-        $shopbtn.on('shown.bs.popover', function () {
-            $('#close-add-result').click(function (e) {
-                $shopbtn.popover('hide');
-            });
         });
 
         function getItemInfo() {
@@ -150,7 +138,6 @@
                     if (sku.props.indexOf(prop[i]) < 0) {
                         break;
                     } else if (i === max - 1) {
-                        console.log(sku);
                         return sku;
                     }
                 }
@@ -167,6 +154,7 @@
             var $this = $(this);
             var $lis = $this.find("li"),
                 cid = $this.data("cid"),
+                cname = $this.data("cname"),
                 $i = $("img#item-img");
 
             $lis.each(function () {
@@ -187,6 +175,8 @@
                     }
 
                     selected_props[index] = {
+                        "cid": cid,
+                        "cname": cname,
                         "id": cid + ":" + pid,
                         "name": pname,
                         "alias": palias
@@ -205,7 +195,7 @@
                         if (sku) {
                             quantity = sku.quantity;
                             d.sel_sku = sku;
-                            price = sku.prom_price;
+                            price = sku.prom_price || sku.price;
                         }
                     } else {
                         quantity = countSKUQuantity(props);

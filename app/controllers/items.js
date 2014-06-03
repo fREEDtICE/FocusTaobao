@@ -101,7 +101,7 @@ exports.addToShoppingcart = function (req, res) {
             shoppingcart[sku.id] = result;
         }
 
-        res.cookie('shoppingcart', JSON.stringify(shoppingcart), { expires: new Date(Date.now() + shoppingCookieTime), maxAge: shoppingCookieTime, signed: true });
+        res.cookie('shoppingcart', JSON.stringify(shoppingcart), { expires: new Date(Date.now() + shoppingCookieTime), httpOnly: true, maxAge: shoppingCookieTime, signed: true });
 
         return httphelper.JSONResponse(res, result);
     }
