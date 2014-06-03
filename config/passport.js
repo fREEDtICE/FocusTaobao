@@ -3,6 +3,8 @@ var mongoose = require('mongoose'),
     Admin = mongoose.model('Admin'),
     Customer = mongoose.model("Customer");
 
+var _ = require("lodash");
+
 module.exports = function (passport, config) {
     // require('./initializer')
 
@@ -84,6 +86,16 @@ module.exports = function (passport, config) {
     };
 
     req.isAuthUserAdmin = function () {
-        return this.isAuthUserAdmin() && this.user.constructor.modelName === Admin.modelName;
+        return this.isAuthenticated() && this.user.constructor.modelName === Admin.modelName;
     };
+
+    !(function () {
+        _.forEach(Admin.Roles, function (role) {
+            var capitalizedRole = role.substring(0, 1).toUpperCase() + role.substring(1),
+                functionName = 'is' + capitalizedRole;
+            req[functionName] = function () {
+                return this.isAuthUserAdmin() && this.user.role === role;
+            }
+        });
+    }());
 }

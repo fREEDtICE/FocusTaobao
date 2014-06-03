@@ -7,13 +7,11 @@ var _ = require('lodash');
 
 var cutil = require("../../utils/CommonUtils");
 
-var BaseSchema = require("./BaseSchema");
-
 var CustomerSchema = new Schema({
     nick: String,
     email: {type: String, required: true, unique: true},
     gender: {type: Number, default: -1},
-    phone: {type: String, unique: true},
+    phone: {type: String},
     salt: {type: String, required: true},
     hpwd: {type: String, required: true},
     status: {type: Number, default: 0},
@@ -22,7 +20,7 @@ var CustomerSchema = new Schema({
     lastLogin: {type: Number, default: Date.now()},
     registerInfo: {
         confirmUrl: String,
-        time: {type: Number, default: Date.now()}
+        time: Number
     },
     moneyAccount: {
         paypal: {type: Number, dedault: 0},
@@ -30,11 +28,13 @@ var CustomerSchema = new Schema({
     },
     shippingAddress: [
         {
+            country: String,
             zipCode: String,
             addressee: {type: String, required: true},
             addresseeContact: {type: String, required: true},
             address: {type: String, required: true},
-            tag: String
+            tag: String,
+            lastUseTime: {type: Number, default: Date.now()}
         }
     ],
     shoppingcart: [
@@ -51,6 +51,8 @@ var CustomerSchema = new Schema({
             props: String,
             sel_prop: [
                 {
+                    cid: String,
+                    cname: String,
                     id: String,
                     name: String,
                     alias: String
@@ -75,6 +77,8 @@ var CustomerSchema = new Schema({
                     props: String,
                     sel_prop: [
                         {
+                            cid: String,
+                            cname: String,
                             id: String,
                             name: String,
                             alias: String
@@ -102,8 +106,9 @@ CustomerSchema.path("gender").validate(function (v) {
     return /0|1|-1/i.test(v);
 }, "invalid gender");
 
+// FIXME Phone need to be unique
 CustomerSchema.path("phone").validate(function (v) {
-    return  /^\d{6,15}$/.test(v);
+    return !v || /^\d{6,15}$/.test(v)
 }, "invalid phone");
 
 
@@ -159,7 +164,7 @@ CustomerSchema.methods.encryptPassword = function (pwd) {
     }
 };
 
-CustomerSchema.methods.cookieToCart = function (items) {
+CustomerSchema.methods.cookieToCart = function (items, cb) {
     if (!this.shoppingcart) {
         console.log("shoppingcart not exists");
         this.shoppingcart = [];
@@ -171,10 +176,13 @@ CustomerSchema.methods.cookieToCart = function (items) {
 
     self.save(function (err) {
         console.log(err);
+        if (typeof cb === 'function') {
+            cb(err);
+        }
     });
 };
 
-CustomerSchema.methods.adjustCartItemQuantity = function (skuid, quantity) {
+CustomerSchema.methods.adjustCartItemQuantity = function (skuid, quantity, cb) {
     var self = this;
     if (!self.shoppingcart) {
         console.log("shopping cart not init");
@@ -188,23 +196,29 @@ CustomerSchema.methods.adjustCartItemQuantity = function (skuid, quantity) {
 
     self.save(function (err) {
         console.log(err);
+        if (typeof cb === 'function') {
+            cb(err);
+        }
     });
 };
 
-CustomerSchema.methods.removeCartItem = function (skuid) {
+CustomerSchema.methods.removeCartItem = function (skuid, cb) {
     var self = this;
     if (!self.shoppingcart) {
         console.log("shopping cart not init");
         return;
     }
 
-    var index = _.findIndex(self.shoppingcart, {skuid: item.skuid});
+    var index = _.findIndex(self.shoppingcart, {skuid: skuid});
     if (~index) {
         self.shoppingcart.splice(index, 1);
     }
 
     self.save(function (err) {
         console.log(err);
+        if (typeof cb === 'function') {
+            cb(err);
+        }
     });
 };
 

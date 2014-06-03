@@ -108,7 +108,11 @@
                     $('div#go-shopping').removeClass('hidden').addClass('show');
                 }
             },
+            beforeSend:function(xhr){
+            },
             error: function () {
+            },
+            complete: function (xhr, ts) {
             }
         });
     };

@@ -11,9 +11,8 @@ var express = require('express'),
     helmet = require('helmet'),
     taobao = require('taobao');
 
-var mongoose = require('mongoose'),
+var RedisStore = require('connect-redis')(session);
 //        sesion_mongo = require('connect-mongo')(express);
-    RedisStore = require('connect-redis')(session);
 var swig = require('swig');
 var pkg = require('../package.json');
 var langMng = require("../app/models/LangDictManager");
@@ -25,6 +24,18 @@ module.exports = function (app, config, passport) {
 
     app.set('showStackError', true)
 
+    // 设定端口
+    app.set('port', process.env.PORT || 8000);
+
+    // 设置视图模板, 使用swig
+    app.engine('html', swig.renderFile);
+    app.set('view engine', 'html');
+    app.set('views', config.root + "/app/views");
+
+    // 配置swig
+    require("./template")(app, swig);
+
+    app.use(express.favicon());
 
     // 配置日志
     // Use winston on production
@@ -41,27 +52,9 @@ module.exports = function (app, config, passport) {
         log = 'dev';
     }
     // Don't log during tests
-    if (env !== 'test') app.use(express.logger(log))
-
-    // 设定端口
-    app.set('port', process.env.PORT || 8000);
-
-    // 设置视图模板, 使用swig
-    app.engine('html', swig.renderFile);
-    app.set('view engine', 'html');
-    app.set('views', config.root + "/app/views");
-
-    // 配置swig
-    require("./template")(app, swig);
-    // 开启压缩
-    app.use(express.compress({
-        filter: function (req, res) {
-            return /json|text|javascript|css/.test(res.getHeader('Content-Type'))
-        },
-        level: 9
-    }));
-
-    app.use(express.favicon());
+    if (env !== 'test') {
+        app.use(express.logger(log))
+    }
 //    app.use(express.logger('dev'));
     app.use(express.urlencoded());
     app.use(express.json());
@@ -74,6 +67,17 @@ module.exports = function (app, config, passport) {
 
     app.use(express.methodOverride());
 
+    // 开启压缩
+    app.use(express.compress({
+        filter: function (req, res) {
+            return /json|text|javascript|css/.test(res.getHeader('Content-Type'))
+        },
+        level: 9
+    }));
+
+    // 静态文件配置
+    app.use(express.static(config.root + '/public'));
+
     // cookie和session
     app.use(express.cookieParser(config.session.secret));
     app.use(express.session({
@@ -82,27 +86,12 @@ module.exports = function (app, config, passport) {
             db: 'sessions',
             host: "localhost",
             port: 6379,
-            ttl: 60 * 10 * 30
+            ttl: 60 * 30
         }),
-        cookie: { maxAge: 60 * 1000 * 30, expires: new Date(Date.now() + 60 * 1000 * 30), httpOnly: true }
+        cookie: { httpOnly: true }
     }));
-
-    // mongoose连接
-    var connect = function () {
-        mongoose.connect(config.db, config.mongoose.options);
-    }
-    connect();
-
-// Error handler
-    mongoose.connection.on('error', function (err) {
-        console.log(err);
-    });
-
-    // 断连时自动重连
-    mongoose.connection.on('disconnected', function () {
-        connect();
-    });
-
+    // FIXME 去掉cookie过期csrf才能正常工作,具体原因不明,待查
+//    maxAge: 1000 * 30 * 60, expires: new Date(Date.now() + 1000 * 30 * 60),
 
     // 配置淘宝API
     taobao.config({
@@ -173,9 +162,6 @@ module.exports = function (app, config, passport) {
     // 路由配置
     require('./routes')(app, passport);
 
-    // 静态文件配置
-    app.use(express.static(config.root + '/public'));
-
     // 出错时的500配置
     app.use(function (err, req, res, next) {
         // treat as 404
@@ -217,5 +203,5 @@ module.exports = function (app, config, passport) {
 // development only
     if ('development' == app.get('env')) {
         app.use(express.errorHandler());
-    }
+    };
 }

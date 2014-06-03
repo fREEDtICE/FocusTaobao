@@ -5,7 +5,7 @@
         <div class="navbar navbar-inverse navbar-static-top" role="navigation">
             <div class="container">
                 {% if showcart%}
-                <div class="btn-group pull-right shopping-wrapper">
+                <div class="btn-group navbar-right shopping-wrapper">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
                             id="btn-shopping-cart">
                         <i class="glyphicon glyphicon-shopping-cart"> ShoppingCart
@@ -38,7 +38,7 @@
                     </ul>
                 </div>
                 {% endif %}
-                <div class="btn-group pull-right shopping-wrapper">
+                <div class="btn-group navbar-right shopping-wrapper">
                     {% if user %}
                     <span>Welcome</span><a target="_blank" href="/customer/{{user._id.toString()}}/profile">{{user.nick}}</a>
                     <a target="_blank" href="/customer/{{user._id.toString()}}/myorder">My Orders</a>
