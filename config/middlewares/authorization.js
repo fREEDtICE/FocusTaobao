@@ -2,10 +2,12 @@
  *  User authorization routing middleware
  */
 
-var mongoose = require('mongoose'),
+var env = process.env.NODE_ENV || 'development',
+    config = require('../config')[env],
+    mongoose = require(config.modelPath),
     Customer = mongoose.model('Customer'),
     _ = require("lodash"),
-    Roles = require("../../app/models/Admin").Roles,
+    Roles = mongoose.models.Admin.Roles,
     Admin = mongoose.model('Admin');
 
 

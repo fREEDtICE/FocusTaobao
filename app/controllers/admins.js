@@ -59,7 +59,7 @@ exports.admin = function (req, res, next, id) {
             return next(err);
         }
         if (!user) {
-            return next(new Error('Failed to load User ' + id))
+            return next(new Error('Failed to load User ' + id));
         }
         req.admin = user;
         next();
