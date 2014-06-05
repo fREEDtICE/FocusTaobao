@@ -3,5 +3,6 @@ exports.LangManager = module.exports.LangManager = require('./singletons/LangDic
 exports.MemManager = module.exports.MemManager = require('./singletons/MemManager');
 
 exports = module.exports = function (app, config) {
+    console.log(config);
     exports.MemManager.init(config.memcached.server, config.memcached.config);
 };

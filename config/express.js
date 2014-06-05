@@ -98,7 +98,7 @@ module.exports = function (app, config, passport) {
     });
 
     // 初始化单例
-    var singletons = require('../app/init');
+    var singletons = require('../app/init')(app, config);
 
 
     // 启用CSRF插件, 防止CSRF攻击
