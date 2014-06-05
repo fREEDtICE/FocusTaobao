@@ -4,7 +4,7 @@ var httphelper = require("../../utils/HttpHelper"),
 var _ = require('lodash'),
     async = require('async');
 
-var mongoose = require('top-models'),
+var mongoose = require('top-models').mongoose,
     Customer = mongoose.model('Customer'),
     Order = mongoose.model('Order');
 

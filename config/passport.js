@@ -4,7 +4,7 @@ var _ = require("lodash"),
 module.exports = function (passport, config) {
     // require('./initializer')
 
-    var mongoose = require('top-models'),
+    var mongoose = require('top-models').mongoose,
         Admin = mongoose.model('Admin'),
         Customer = mongoose.model("Customer");
 

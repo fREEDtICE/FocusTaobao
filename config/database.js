@@ -5,7 +5,6 @@ module.exports = function (config) {
     var connect = function () {
         mongoose.connect(config.db, config.mongoose.options);
         require('mongoose-auto-increment').initialize(mongoose.connection);
-        console.log(mongoose);
     }
     connect();
 

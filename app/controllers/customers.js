@@ -1,4 +1,4 @@
-var mongoose = require('top-models'),
+var mongoose = require('top-models').mongoose,
     Customer = mongoose.model('Customer'),
     Order = mongoose.model('Order'),
     OrderStatus = mongoose.models.Order.OrderStatus;

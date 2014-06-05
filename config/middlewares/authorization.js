@@ -2,14 +2,12 @@
  *  User authorization routing middleware
  */
 
-var env = process.env.NODE_ENV || 'development',
-    config = require('../config')[env],
-    mongoose = require(config.modelPath),
+
+var mongoose = require('top-models').mongoose,
     Customer = mongoose.model('Customer'),
     _ = require("lodash"),
-    Roles = mongoose.models.Admin.Roles,
+    Roles = require('top-models').models.Admin.Roles,
     Admin = mongoose.model('Admin');
-
 
 var makeAuthorization = function (prop, paramid) {
     console.log("make auth, prop %s, param %s", prop, paramid);

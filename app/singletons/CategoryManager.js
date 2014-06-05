@@ -1,4 +1,4 @@
-var mongoose = require('top-models'),
+var mongoose = require('top-models').mongoose,
     MemManager = require("./MemManager"),
     async = require("async"),
     Category = mongoose.model("Category"),
